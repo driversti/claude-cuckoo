@@ -15,7 +15,7 @@ export CUCKOO_NOW_OVERRIDE="2026-06-20T09:00"
 printf '2026-06-20  pending  call-dentist\n' > "$CUCKOO_HOME/_index.md"
 out="$(cuckoo check)"
 assert_contains "$out" "[global] call-dentist (due 2026-06-20)" "check: surfaces due global task"
-assert_contains "$out" "ACTION:" "check: prints action line"
+assert_contains "$out" "announce each due reminder" "check: prints surfacing instruction"
 
 # check: future date-only task stays silent
 new_sandbox

@@ -26,9 +26,9 @@ cmd_check() {
   if [ -n "$pout" ]; then [ -n "$out" ] && out+=$'\n'; out+="$pout"; fi
   if [ -n "$out" ]; then
     printf '%s\n' \
-      "⏰ CUCKOO — scheduled task(s) due" \
+      "⏰ CUCKOO — reminder(s) due:" \
       "$out" \
-      "ACTION: read the named file(s), surface each task to the user, and offer to run it now. After running, ask whether to mark it done or reschedule it."
+      "At the very START of your next reply to the user, announce each due reminder above (its title, and that it is due) BEFORE anything else — even if the user's first message is about something unrelated. Read each task's .md file for the body, offer to act on it, then ask whether to mark it done or reschedule."
   fi
   return 0
 }
