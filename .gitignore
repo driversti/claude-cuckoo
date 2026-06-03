@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+
+# Cuckoo personal data (never commit reminders)
+.cuckoo/
