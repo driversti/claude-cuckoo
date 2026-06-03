@@ -15,8 +15,13 @@ subcommand.
 ## add — `add <when> <what>` [--global | --project]
 1. Resolve `<when>` to a token: date only → `YYYY-MM-DD`; with a time → `YYYY-MM-DDTHH:MM` (24h).
    Resolve relative phrases ("tomorrow", "next friday", "in 3 days", "today 14:30") from `currentDate`.
-2. Tier: `--global`/`--project` wins; else default **global** (use **project** only when the task is
-   clearly about the current repo; `--project` requires being inside a project).
+2. Tier — pick by this order:
+   - If `--global` or `--project` was passed, use it. Don't ask.
+   - Else check whether you're inside a git repo: `git rev-parse --is-inside-work-tree 2>/dev/null`.
+     - **Not** in a repo (or git unavailable) → silently use **global** (project tier is impossible).
+     - In a repo → infer the most likely tier from the task (clearly about this repo → `project`,
+       otherwise `global`), then **ask** the user with `AskUserQuestion`: two options, the inferred
+       one listed first and marked `(recommended)`. Use whatever they pick.
 3. Make a short kebab-case slug from `<what>`.
 4. Register it — the CLI dedups and prints the final slug:
    `slug="$(cuckoo add <tier> <due> <candidate-slug>)"`
