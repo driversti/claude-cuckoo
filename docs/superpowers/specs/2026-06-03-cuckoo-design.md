@@ -118,8 +118,9 @@ complete instruction prompt for Claude to run (like our Balloon Bonanza final-an
 
 ### 1. SessionStart hook — `cuckoo-check.sh`
 
-**Registration** (`hooks/hooks.json`): a `SessionStart` hook firing on the session-begin matchers
-(`startup`, `resume`, `clear`), command `bash ${CLAUDE_PLUGIN_ROOT}/hooks/cuckoo-check.sh`.
+**Registration** (`hooks/hooks.json`): one `SessionStart` entry with combined matcher
+`"startup|resume|clear"` and `"async": false`, command
+`bash "${CLAUDE_PLUGIN_ROOT}/hooks/cuckoo-check.sh"` (quote the path for safety).
 
 **Behavior:**
 1. `now = date +%Y-%m-%dT%H:%M` (local-tz date-time).
@@ -268,16 +269,26 @@ Single repo doubles as marketplace + plugin.
 
 MIT.
 
-## Open questions — verify during implementation (against code.claude.com/docs)
+## Resolved decisions (verified against code.claude.com/docs + real installed plugins)
 
-1. Exact `marketplace.json` plugin `source` value for a plugin living at the **repo root** (e.g.
-   `"."` vs a `./plugins/cuckoo` subdir). May restructure to a subdir if root source isn't
-   supported.
-2. Whether `SessionStart` needs separate entries per matcher (`startup`/`resume`/`clear`) or accepts
-   a combined/omitted matcher.
-3. Confirm the installed command is exactly `/cuckoo:schedule` (plugin-name namespacing) and finalize
-   whether subcommands or per-action skills read better in autocomplete.
-4. Migration note (separate task): move the existing personal ad-hoc scheduler (`~/.claude/scheduled/`
-   + the Balloon Bonanza task + the hand-added global `settings.json` hook) onto Cuckoo once it's
-   installable, then remove the ad-hoc hook to avoid double-surfacing.
+1. **Marketplace source = `"./"`.** Single-plugin repo: the plugin lives at the repo root
+   (`./.claude-plugin/plugin.json`), and `./.claude-plugin/marketplace.json` lists it with
+   `"source": "./"`. Confirmed by the superpowers plugin's own self-marketplace.
+2. **SessionStart hook:** one entry in `hooks/hooks.json` with combined matcher
+   `"startup|resume|clear"` and `"async": false`; command
+   `bash "${CLAUDE_PLUGIN_ROOT}/hooks/cuckoo-check.sh"`. Matchers combine with `|` (no separate
+   entries needed).
+3. **The command is a Skill, not a flat command.** `commands/` is legacy ("use `skills/` for new
+   plugins"). File: `skills/schedule/SKILL.md`. Plugin skills are **always namespaced**, so it is
+   invoked as **`/cuckoo:schedule`** (`name: cuckoo` in plugin.json sets the prefix). A single skill
+   takes the subcommand as the first argument via `$ARGUMENTS` (e.g.
+   `/cuckoo:schedule add tomorrow 9am "..."`). Components at default locations are auto-discovered —
+   declaring their paths in plugin.json is optional.
+4. **Migration is a separate post-v1 task.** Once Cuckoo is installable, move the personal ad-hoc
+   scheduler (`~/.claude/scheduled/` + the Balloon Bonanza task + the hand-added global
+   `settings.json` hook) onto Cuckoo, then remove the ad-hoc hook to avoid double-surfacing. Tracked
+   outside this spec.
+
+**Dev/test workflow:** build and iterate locally with `claude --plugin-dir ./claude-cuckoo` (no
+publish needed); `/reload-plugins` picks up changes. Publish to GitHub + marketplace only when ready.
 ```
