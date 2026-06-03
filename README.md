@@ -1,5 +1,7 @@
 # Cuckoo 🐦
 
+🇬🇧 English · [🇺🇦 Українська](README.uk.md)
+
 **A durable personal calendar for Claude Code.** Set a reminder for a future date (optionally a
 time), and Cuckoo brings it back the next time you start a Claude Code session on or after that date
 — like a cuckoo clock popping out at the right moment. It's a *tickler file* for Claude Code.
