@@ -1,7 +1,13 @@
 # Cuckoo 🐦 — Design Spec
 
 **Date:** 2026-06-03
-**Status:** Approved design (pre-implementation)
+**Status:** Implemented in v0.1.0 — see `docs/superpowers/plans/2026-06-03-cuckoo-implementation.md`.
+
+> **Implementation note:** the trigger logic was consolidated into a single portable bash CLI,
+> `bin/cuckoo`, and the SessionStart hook runs `cuckoo check`. Wherever this spec refers to a
+> standalone `hooks/cuckoo-check.sh`, that exact behavior is now provided by `bin/cuckoo check`
+> (with sibling verbs `add`/`list`/`dir`/`remove`/`done`/`reschedule` backing the `/cuckoo:schedule`
+> skill).
 
 ## Goal
 
