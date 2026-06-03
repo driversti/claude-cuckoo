@@ -34,8 +34,9 @@ every session: a **SessionStart hook** (deterministic trigger) and plain files (
 ## Core concepts
 
 - **Session-triggered, not a daemon.** Cuckoo cannot push to your phone. A due reminder appears when
-  you next *start a Claude Code session* on/after the due date. (Push notifications are the job of
-  the future Google Calendar sync — see *Future*.)
+  you next *start a Claude Code session* on/after the due date (or, if a time is set, that
+  date-time). A time is the *earliest* surfacing moment, not a real-time alarm. (Push notifications
+  are the job of the future Google Calendar sync — see *Future*.)
 - **Two tiers.**
   - 🌍 **Global** — reminders that aren't tied to a repo (personal, cross-project). Stored under the
     user's home Claude dir.
@@ -88,18 +89,22 @@ claude-cuckoo/
 
 ```
 # Cuckoo index — one task per line:  DUE  STATUS  SLUG
-# DUE = YYYY-MM-DD (local tz) · STATUS = pending|done · lines starting with # ignored
-2026-06-20  pending  call-dentist
+# DUE = YYYY-MM-DD  OR  YYYY-MM-DDTHH:MM  (local tz, single token, no space)
+# STATUS = pending|done · lines starting with # are ignored
+2026-06-20        pending  call-dentist
+2026-06-21T14:30  pending  standup-prep
 ```
 
-ISO dates sort lexically == chronologically, so the hook's date check is a plain string compare —
-no date library needed.
+`DUE` is a single token: a bare date (fires any time that day) or an ISO date-time with a `T`
+separator (fires no earlier than that minute). ISO strings sort lexically == chronologically, and a
+bare date is a lexical prefix of any time on that day — so the hook compares `DUE` against the
+current date-time with one plain string compare, uniformly for both forms. No date library needed.
 
 ### `<slug>.md` format (read only when due)
 
 ```markdown
 # <human-readable title>
-- due: YYYY-MM-DD
+- due: YYYY-MM-DD  or  YYYY-MM-DDTHH:MM
 - created: YYYY-MM-DD
 - tier: global|project
 
@@ -117,11 +122,12 @@ complete instruction prompt for Claude to run (like our Balloon Bonanza final-an
 (`startup`, `resume`, `clear`), command `bash ${CLAUDE_PLUGIN_ROOT}/hooks/cuckoo-check.sh`.
 
 **Behavior:**
-1. `today = date +%F` (local tz).
+1. `now = date +%Y-%m-%dT%H:%M` (local-tz date-time).
 2. Scan the **global** index `~/.claude/cuckoo/_index.md`.
 3. If `$CLAUDE_PROJECT_DIR` is set, also scan `<project>/.cuckoo/_index.md`.
-4. For each line with `status == pending` and `due <= today`, emit one line:
-   `• [tier] <slug> (due <date>) -> <abs path to slug.md>`.
+4. For each line with `status == pending` and `due <= now` (string compare — a bare-date `due` is a
+   prefix of any time that day, so it fires from 00:00), emit one line:
+   `• [tier] <slug> (due <when>) -> <abs path to slug.md>`.
 5. If anything was emitted, print a short header + an **ACTION** line instructing Claude to: read the
    named file(s), surface each task to the user, offer to run it now, and afterward ask whether to
    **delete** or **reschedule**.
@@ -133,7 +139,7 @@ complete instruction prompt for Claude to run (like our Balloon Bonanza final-an
 - Always `exit 0` — the hook must never block a session, even on malformed input.
 - Reads only `_index.md` files (never the `<slug>.md` bodies) — this is what keeps idle cost at ~0.
 - Portable: only `$HOME`, `$CLAUDE_PROJECT_DIR`, `date`, `awk`, `sed`. No hardcoded user paths.
-- A `SCHED_TODAY_OVERRIDE` env var lets tests simulate a date.
+- A `CUCKOO_NOW_OVERRIDE` env var (a `YYYY-MM-DDTHH:MM` string) lets tests simulate the current date-time.
 
 ### 2. `/cuckoo:schedule` skill (`skills/schedule/SKILL.md`)
 
@@ -145,8 +151,9 @@ here), but tuned to trigger only on scheduling intent.
 Subcommands:
 
 - **`add <when> <what>`** `[--global|--project]`
-  - Claude resolves `<when>` (e.g. `tomorrow`, `next friday`, `2026-07-01`) to `YYYY-MM-DD` using the
-    session's current date + local tz.
+  - Claude resolves `<when>` (e.g. `tomorrow`, `next friday 9am`, `2026-07-01`, `today 14:30`) to
+    `YYYY-MM-DD` (date-only) or `YYYY-MM-DDTHH:MM` (when a time of day is given), using the session's
+    current date-time + local tz.
   - Generates a kebab-case `<slug>` from `<what>` (deduped with a numeric suffix if it already
     exists).
   - Tier: `--global`/`--project` flag wins; default **global**; if `--project`, requires being in a
@@ -154,9 +161,10 @@ Subcommands:
   - Writes `<slug>.md` (title/due/created/tier + body) and appends the index line. Confirms with the
     resolved date and tier.
 - **`list`** — reads global + (if in a project) project indexes; prints pending tasks sorted by due
-  date with a relative "in N days" / "today" / "overdue" label.
+  date-time, showing the time when present, with a relative "in N days" / "today" / "overdue" label.
 - **`done <slug>`** (alias `delete`) — removes the `<slug>.md` file and its index line.
-- **`reschedule <slug> <when>`** — resolves the new date and updates the index line in place.
+- **`reschedule <slug> <when>`** — resolves the new date (with optional time) and updates the index
+  line in place.
 
 ## Data flow
 
@@ -193,11 +201,16 @@ Single repo doubles as marketplace + plugin.
   ```
 - `version` set in `plugin.json` (single source of truth) so users get updates only on version bumps.
 
-## Date & timezone handling
+## Date, time & timezone handling
 
-- All dates are `YYYY-MM-DD` in the user's **local** timezone.
-- The hook uses `date +%F` (local) for "today"; the skill asks Claude to resolve natural-language
-  `<when>` to an absolute local date — no date library, no external calls.
+- Dates/times are in the user's **local** timezone. `DUE` is stored as `YYYY-MM-DD` (date-only) or
+  `YYYY-MM-DDTHH:MM`.
+- The hook uses `date +%Y-%m-%dT%H:%M` (local) for "now"; the skill asks Claude to resolve a
+  natural-language `<when>` to an absolute local date (and time, when given) — no date library, no
+  external calls.
+- **Time-of-day semantics:** a time sets the *earliest* moment a reminder may surface; it is NOT a
+  real-time alarm. A timed task appears at the first session start at/after that minute. True
+  minute-precise, device-level alarms are the job of the future Google Calendar sync.
 
 ## Edge cases & error handling
 
@@ -225,9 +238,10 @@ Single repo doubles as marketplace + plugin.
 
 ## Testing strategy
 
-- **Hook unit tests** (bash): feed crafted `_index.md` fixtures + `SCHED_TODAY_OVERRIDE`; assert
-  silence when nothing due, correct surfacing when due, correct tier labels, project-tier resolution
-  via a fake `$CLAUDE_PROJECT_DIR`, graceful handling of missing/malformed files.
+- **Hook unit tests** (bash): feed crafted `_index.md` fixtures + `CUCKOO_NOW_OVERRIDE`; assert
+  silence when nothing due, correct surfacing when due (both date-only and timed `DUE`, incl. the
+  "timed task not before its minute" boundary), correct tier labels, project-tier resolution via a
+  fake `$CLAUDE_PROJECT_DIR`, graceful handling of missing/malformed files.
 - **Skill behavior** documented with worked examples in README; manual acceptance checklist for
   add/list/done/reschedule across both tiers.
 - **Install smoke test:** add the marketplace, install, start a session with a due fixture, confirm
