@@ -1,0 +1,10 @@
+{
+  "name": "cuckoo",
+  "description": "Durable personal calendar for Claude Code — date/time reminders that resurface at your next session on/after the due date.",
+  "version": "0.1.0",
+  "author": { "name": "Yurii Chekhotskyi" },
+  "homepage": "https://github.com/driversti/claude-cuckoo",
+  "repository": "https://github.com/driversti/claude-cuckoo",
+  "license": "MIT",
+  "keywords": ["reminders", "calendar", "scheduler", "tickler", "productivity", "hooks"]
+}

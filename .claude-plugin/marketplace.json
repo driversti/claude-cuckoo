@@ -1,0 +1,12 @@
+{
+  "name": "cuckoo",
+  "description": "Cuckoo — durable personal calendar for Claude Code",
+  "owner": { "name": "Yurii Chekhotskyi" },
+  "plugins": [
+    {
+      "name": "cuckoo",
+      "source": "./",
+      "description": "Date/time reminders that resurface at your next session on/after the due date."
+    }
+  ]
+}
