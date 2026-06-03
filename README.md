@@ -46,7 +46,9 @@ Then restart Claude Code (or run `/reload-plugins`).
 
 - Dates resolve in your local timezone; natural language ("tomorrow", "next friday 9am", "in 3
   days") works.
-- Default tier is **global**; pass `--project` to scope a reminder to the current repo.
+- Default tier is **global**. Inside a git repo, if you don't pass a flag Cuckoo asks whether to
+  scope the reminder to the repo (**project**) or keep it **global** — pass `--global`/`--project`
+  to skip the prompt.
 
 When a reminder is due, your next session opens with a note like:
 
