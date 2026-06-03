@@ -16,9 +16,11 @@ essentially **zero context tokens**.
   - 🌍 **Global** — `~/.claude/cuckoo/` — personal, works in any project.
   - 📂 **Project** — `<your-repo>/.cuckoo/` — tied to a specific repo (git-ignored by default).
 
-> **Session-triggered, not an alarm clock.** Cuckoo can't push to your phone. A reminder surfaces at
-> the start of your next session on/after its due date/time — a time of day is the *earliest*
-> surfacing moment, not a real-time alert. (Calendar/push integration is on the roadmap.)
+> **Session-triggered, not an alarm clock.** Cuckoo can't push to your phone, and it is not a terminal
+> popup. At session start the hook hands any due reminders to Claude, which announces them in its
+> **first reply once you send a message** — so a brand-new session you just stare at (without typing
+> anything) shows nothing until you say something. A time of day is the *earliest* surfacing moment,
+> not a real-time alert. (Calendar/push integration is on the roadmap.)
 
 ## Install
 
