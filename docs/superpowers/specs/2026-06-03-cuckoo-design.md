@@ -251,6 +251,16 @@ Single repo doubles as marketplace + plugin.
 
 - **Google Calendar two-way sync** (the path to real phone push notifications). Designed-for, not
   built: the file model maps cleanly to calendar events later.
+- **In-session precision timer (best-effort)** — when a timed task is due soon and a session is
+  already open, arm a one-shot in-session timer (`CronCreate`) that fires at the exact minute, so the
+  reminder surfaces on time instead of waiting for the next session start. Layered *on top of* the
+  durable file, which stays the guarantee: if the session closes first, the file still surfaces the
+  task next start (graceful degradation — worst case is v1 behavior, best case is exact-time). The
+  `HH:MM` data model already enables this; no format change needed. Open design points: it only works
+  while a session is open and idle (not a device push — that's Calendar's job); it needs de-dup so a
+  resume/restart doesn't double-arm; and arming all of the day's remaining timed tasks at session
+  start is likely simpler and more correct than a fixed look-ahead window (a window can miss tasks
+  that cross into range mid-session, and stale one-shot crons harmlessly die with the session).
 - **Recurring reminders** (daily/weekly/cron) — needs next-occurrence logic and a richer index.
 - **Snooze**, categories/tags, a `done/` archive for history.
 
